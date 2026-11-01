@@ -1,0 +1,12 @@
+[
+  {"name": "Be the light", "duration": 372.0, "fixed": true},
+  {"name": "Bloom beyond the snow", "duration": 314.0},
+  { "name": "Changes", "duration": 320.0, "fixed": true },
+  { "name": "Inner child", "duration": 293.1, "fixed": true },
+  {"name": "My heart", "duration": 281.7},
+  {"name": "Obrigado", "duration": 358.0, "incompatibility": "Paciencia"},
+  {"name": "Our love", "duration": 260.0, "nominated": true},
+  {"name": "Paciencia", "duration": 344.0, "incompatibility": "Obrigado"},
+  {"name": "Seeds of peace", "duration": 302.0},
+  {"name": "Sister", "duration": 358.0, "nominated": true}
+]

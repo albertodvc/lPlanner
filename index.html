@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<title>Combinaciones de LP</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: dark; --bg: #09090b; --card: #111113; --text: #fafafa; --muted: #a1a1aa; --line: #27272a; --accent: #fafafa; --hot: #f87171; --soft: #1c1c1f; }
+  * { box-sizing: border-box; }
+  body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif; margin: 0 auto; padding: 2rem 1.5rem; max-width: 1200px; color: var(--text); background: var(--bg); }
+  h3 { font-size: 1.1rem; font-weight: 600; letter-spacing: -.01em; margin: 0 0 .75rem; }
+  table { border-collapse: separate; border-spacing: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 8px 12px; vertical-align: top; text-align: left; }
+  tr:last-child td { border-bottom: 0; }
+  th { background: var(--card); color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  th.v { height: 10em; padding: 6px 4px; vertical-align: bottom; text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--text); }
+  th.v div { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; }
+  td.c { text-align: center; padding: 8px; }
+  td.self { background: var(--soft) !important; }
+  td { background: var(--card); }
+  tr:hover td { background: var(--soft); }
+  .nom { color: var(--hot); font-weight: 600; }
+  .opts, .filters { margin: 1.25rem 0; padding: 1rem 1.25rem; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  .opts div { margin-bottom: .75rem; }
+  .opts label, .filters label { margin-right: 1.25rem; color: var(--muted); }
+  .opts b { color: var(--text); font-variant-numeric: tabular-nums; margin-left: .25rem; }
+  #info { color: var(--muted); font-variant-numeric: tabular-nums; }
+  input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; vertical-align: middle; }
+  input[type=range] { accent-color: var(--accent); vertical-align: middle; }
+  .scroll { padding: 0 1px 1px 0; margin-bottom: 1rem; }
+  /* wide: headers stick to the page; narrow: the box scrolls horizontally (sticky column) so the header is pinned with JS */
+  @media (max-width: 1000px) { .scroll { overflow-x: auto; } }
+  th { position: sticky; top: 0; z-index: 2; }
+  #songs tr:first-child th { height: 34px; }
+  #songs tr:nth-child(2) th { top: 34px; }
+  #songs td:first-child, #songs tr:first-child th:first-child { position: sticky; left: 0; z-index: 1; border-right: 1px solid var(--line); }
+  #songs tr:first-child th:first-child { z-index: 3; }
+  #results td:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+  #results { width: 100%; }
+  #results tbody tr { cursor: pointer; }
+  #lp { position: fixed; inset: 0; z-index: 10; background: rgba(9,9,11,.96); display: none; align-items: center; justify-content: center; }
+  #lp.open { display: flex; }
+  #lp .close { position: absolute; top: 1rem; right: 1.25rem; background: none; border: 1px solid var(--line); color: var(--text); border-radius: 50%; width: 40px; height: 40px; font-size: 20px; cursor: pointer; }
+  #disc { position: relative; width: min(92vh, 92vw); aspect-ratio: 1; border-radius: 50%; display: flex; overflow: hidden;
+    background: repeating-radial-gradient(circle, #151517 0 3px, #0d0d0f 3px 6px); border: 2px solid var(--line); box-shadow: 0 0 80px rgba(255,255,255,.04); }
+  #disc::after { content: ""; position: absolute; left: 50%; top: 4%; bottom: 4%; width: 1px; background: var(--line); }
+  .half { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 6% 0 6%; min-width: 0; }
+  .half.a { padding: 0 2% 0 6%; align-items: flex-end; text-align: right; }
+  .half h4 { margin: 0 0 .25rem; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 500; }
+  .half .t { color: var(--muted); font-variant-numeric: tabular-nums; margin-bottom: .75rem; }
+  .half ol { list-style: none; margin: 0; padding: 0; width: 78%; }
+  .half li { padding: 8px 12px; margin: 4px 0; background: var(--card); border: 1px solid var(--line); border-radius: 8px; cursor: grab; display: flex; justify-content: space-between; gap: .75rem; user-select: none; }
+  .half li.over { border-color: var(--text); }
+  .half li.drag { opacity: .35; }
+  .half li span { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .hole { position: absolute; left: 50%; top: 50%; width: 5%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: var(--bg); border: 1px solid var(--line); z-index: 1; }
+  #lp .export { position: absolute; top: 1rem; left: 1.25rem; background: var(--text); color: var(--bg); border: 0; border-radius: 20px; padding: 0 1rem; height: 40px; font: inherit; font-weight: 600; cursor: pointer; }
+  #lp .swap { position: absolute; left: 50%; top: 50%; width: 9%; aspect-ratio: 1; transform: translate(-50%, -50%); z-index: 2; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); color: var(--text); font-size: clamp(14px, 3vmin, 28px); cursor: pointer; padding: 0; }
+  #lp .swap:hover { border-color: var(--text); }
+  #lpx { position: absolute; bottom: 1rem; left: 0; right: 0; text-align: center; color: var(--muted); }
+</style>
+<div id="lp"><button class="export" id="lpExport">Exportar CSV</button><button class="close" id="lpClose" aria-label="Cerrar">×</button>
+  <div id="disc"><div class="half a"></div><div class="half b"></div><button class="swap" id="lpSwap" title="Intercambiar A / B" aria-label="Intercambiar cara A y B">⇄</button></div>
+  <div id="lpx"></div></div>
+<h3>Canciones</h3>
+<div class="scroll"><table id="songs"></table></div>
+<div class="opts">
+  <div><label>Tiempo máximo por cara: <b id="maxMinV">20:00</b><br><input type="range" id="maxMin" value="1200" min="60" max="2400" step="1" style="width:100%"></label></div>
+  <label>Máximo de canciones excluidas: <b id="maxExclV">3</b> <input type="range" id="maxExcl" value="3" min="0" max="10"></label>
+</div>
+<div class="filters">
+  <label><input type="checkbox" id="onlyNom"> solo con nominadas excluidas</label>
+  <label><input type="checkbox" id="noNom"> sin nominadas excluidas</label>
+  <label><input type="checkbox" id="noExcl"> sin excluidas</label>
+  <span id="info"></span>
+</div>
+<table id="results">
+  <thead><tr><th>#</th><th>Cara A</th><th>Cara B</th><th>Excluidas</th></tr></thead>
+  <tbody id="body"></tbody>
+</table>
+<script>
+const $ = (id) => document.getElementById(id);
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+let songs = [];   // {name, duration, nominated, fixed}
+let conflict = []; // symmetric boolean matrix
+let shown = [];
+let all = [];      // all computed combinations
+
+function load(data) {
+  $('maxExcl').max = data.length;
+  songs = data.map((s) => ({ name: s.name, duration: s.duration, nominated: !!s.nominated, fixed: !!s.fixed }));
+  const idx = Object.fromEntries(songs.map((s, i) => [s.name, i]));
+  conflict = songs.map(() => songs.map(() => false));
+  data.forEach((s, i) => [].concat(s.incompatibility || []).forEach((n) => {
+    if (n in idx && idx[n] !== i) conflict[i][idx[n]] = conflict[idx[n]][i] = true;
+  }));
+  renderSongs();
+  compute();
+}
+
+function renderSongs() {
+  const head = songs.map((s, j) => `<th class="v"><div>${esc(s.name)}</div></th>`).join('');
+  const rows = songs.map((s, i) => `<tr>
+    <td>${esc(s.name)}</td><td>${mmss(s.duration)}</td>
+    <td class="c"><input type="checkbox" data-k="nominated" data-i="${i}" ${s.nominated ? 'checked' : ''}></td>
+    <td class="c"><input type="checkbox" data-k="fixed" data-i="${i}" ${s.fixed ? 'checked' : ''}></td>
+    ${songs.map((_, j) => i === j ? '<td class="self"></td>'
+      : `<td class="c"><input type="checkbox" data-i="${i}" data-j="${j}" ${conflict[i][j] ? 'checked' : ''}></td>`).join('')}
+  </tr>`).join('');
+  $('songs').innerHTML = `<tr><th rowspan="2">Canción</th><th rowspan="2">Duración</th><th rowspan="2">Nominada</th><th rowspan="2">Fija</th><th colspan="${songs.length}">Incompatibilidad en la misma cara</th></tr><tr>${head}</tr>${rows}`;
+}
+
+$('songs').addEventListener('change', (e) => {
+  const { i, j, k } = e.target.dataset;
+  if (k) songs[i][k] = e.target.checked;
+  else {
+    conflict[i][j] = conflict[j][i] = e.target.checked;
+    renderSongs();
+  }
+  compute();
+});
+
+function compute() {
+  const n = songs.length, max = +$('maxMin').value, maxEx = +$('maxExcl').value;
+  const assign = new Array(n), sum = { A: 0, B: 0 };
+  all = [];
+  const ok = (i, side) => {
+    if (sum[side] + songs[i].duration > max) return false;
+    for (let j = 0; j < i; j++) if (assign[j] === side && conflict[i][j]) return false;
+    return true;
+  };
+  (function rec(i, aUsed, ex) {
+    if (i === n) {
+      const pick = (side) => songs.filter((_, k) => assign[k] === side);
+      const A = pick('A'), B = pick('B'), X = pick('X');
+      all.push({
+        A: { songs: A.map((s) => s.name), sec: sum.A },
+        B: { songs: B.map((s) => s.name), sec: sum.B },
+        X: X.map((s) => s.name),
+        XN: X.filter((s) => s.nominated).map((s) => s.name),
+      });
+      return;
+    }
+    for (const side of ['A', 'B', 'X']) {
+      if (side === 'B' && !aUsed) continue; // A/B mirrors are the same combination
+      if (side === 'X' && (ex >= maxEx || songs[i].fixed)) continue;
+      if (side !== 'X' && !ok(i, side)) continue;
+      assign[i] = side;
+      if (side !== 'X') sum[side] += songs[i].duration;
+      rec(i + 1, aUsed || side === 'A', ex + (side === 'X'));
+      if (side !== 'X') sum[side] -= songs[i].duration;
+    }
+  })(0, false, 0);
+  all.sort((a, b) => b.XN.length - a.XN.length || a.X.length - b.X.length || a.A.songs.join().localeCompare(b.A.songs.join()));
+  render();
+}
+
+function render() {
+  const rows = all.filter((r) =>
+    (!$('onlyNom').checked || r.XN.length) && (!$('noNom').checked || !r.XN.length) && (!$('noExcl').checked || !r.X.length));
+  const side = (s) => `<b>${mmss(s.sec)}</b><br>${s.songs.map(esc).join('<br>')}`;
+  $('body').innerHTML = rows.map((r, i) => `<tr data-i="${i}"><td>${i + 1}</td><td>${side(r.A)}</td><td>${side(r.B)}</td><td>${
+    r.X.map((n) => `<span class="${r.XN.includes(n) ? 'nom' : ''}">${esc(n)}</span>`).join('<br>')}</td></tr>`).join('');
+  shown = rows;
+  $('info').textContent = `${rows.length} combinaciones`;
+}
+
+// A horizontal scroll box breaks vertical sticky, so pin the header rows manually on narrow screens
+function pinHeader() {
+  const box = document.querySelector('.scroll'), ths = box.querySelectorAll('th');
+  const narrow = matchMedia('(max-width: 1000px)').matches;
+  const rows = box.querySelectorAll('tr');
+  const headH = [...rows].slice(0, 2).reduce((h, r) => h + r.offsetHeight, 0);
+  const off = narrow ? Math.max(0, Math.min(-box.getBoundingClientRect().top, box.offsetHeight - headH - 8)) : 0;
+  ths.forEach((th) => (th.style.transform = off ? `translateY(${off}px)` : ''));
+}
+addEventListener('scroll', pinHeader, { passive: true });
+addEventListener('resize', pinHeader);
+new MutationObserver(pinHeader).observe($('songs'), { childList: true });
+
+// LP view: each side is half of the disc; songs can be reordered by drag and drop within their side
+const dur = Object.create(null);
+function openLP(r) {
+  current = r;
+  songs.forEach((x) => (dur[x.name] = x.duration));
+  const halves = document.querySelectorAll('#disc .half');
+  [['A', r.A, halves[0]], ['B', r.B, halves[1]]].forEach(([label, side, el]) => {
+    el.innerHTML = `<h4>Cara ${label}</h4><div class="t"></div><ol>${side.songs.map((n) =>
+      `<li draggable="true" data-n="${esc(n)}">${esc(n)}<span>${mmss(dur[n])}</span></li>`).join('')}</ol>`;
+    const ol = el.querySelector('ol');
+    el.querySelector('.t').textContent = mmss(side.sec);
+    let dragged = null;
+    ol.ondragstart = (e) => { dragged = e.target.closest('li'); dragged.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; };
+    ol.ondragend = () => { dragged && dragged.classList.remove('drag'); dragged = null; ol.querySelectorAll('.over').forEach((l) => l.classList.remove('over')); };
+    ol.ondragover = (e) => {
+      if (!dragged) return;
+      e.preventDefault();
+      const li = e.target.closest('li');
+      ol.querySelectorAll('.over').forEach((l) => l.classList.remove('over'));
+      if (li && li !== dragged) li.classList.add('over');
+    };
+    ol.ondrop = (e) => {
+      e.preventDefault();
+      const li = e.target.closest('li');
+      if (dragged && li && li !== dragged) {
+        const before = [...ol.children].indexOf(dragged) > [...ol.children].indexOf(li);
+        ol.insertBefore(dragged, before ? li : li.nextSibling);
+      }
+    };
+  });
+  $('lp').classList.add('open');
+}
+$('body').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr');
+  if (tr) openLP(shown[+tr.dataset.i]);
+});
+let current = null;
+// Swap sides keeping the current on-screen order of each side
+$('lpSwap').onclick = () => {
+  const side = (el) => {
+    const names = [...el.querySelectorAll('li')].map((li) => li.dataset.n);
+    return { songs: names, sec: names.reduce((t, n) => t + dur[n], 0) };
+  };
+  const [a, b] = [...document.querySelectorAll('#disc .half')].map(side);
+  openLP({ ...current, A: b, B: a });
+};
+$('lpExport').onclick = () => {
+  const q = (v) => `"${String(v).replace(/"/g, '""')}"`;
+  const lines = [['Cara', 'Canciones'].map(q).join(',')];
+  document.querySelectorAll('#disc .half').forEach((el, h) => {
+    const names = [...el.querySelectorAll('li')].map((li) => li.dataset.n);
+    lines.push([h ? 'B' : 'A', names.join(', ')].map(q).join(','));
+  });
+  const url = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: 'lp.csv' });
+  a.click();
+  URL.revokeObjectURL(url);
+};
+$('lpClose').onclick = () => $('lp').classList.remove('open');
+addEventListener('keydown', (e) => e.key === 'Escape' && $('lp').classList.remove('open'));
+
+['onlyNom', 'noNom', 'noExcl'].forEach((id) => ($(id).onchange = render));
+['maxMin', 'maxExcl'].forEach((id) => ($(id).oninput = () => { $(id + 'V').textContent = id === 'maxMin' ? mmss(+$(id).value) : $(id).value; compute(); }));
+fetch('audio.json').then((r) => r.json()).then(load);
+</script>
